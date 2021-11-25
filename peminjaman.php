@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keranjang</title>
+    <!-- CSS only -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+</head>
+<body>
+    <?php
+        include "navbar.php";
+    ?>
+    <br></br>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1>History Peminjaman Buku</h1>
+            </div>
+            <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                    <th scope="col">No</th>
+                    <th scope="col">TANGGAL PINJAM</th>
+                    <th scope="col">TANGGAL HARUS KEMBALI</th>
+                    <th scope="col">NAMA BUKU</th>
+                    <th scope="col">&nbsp;&nbsp;jumlah</th>
+                    <th scope="col">STATUS</th>
+                    <th scope="col">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    include "koneksi.php";
+                    $query_peminjaman = mysqli_query($koneksi, "SELECT * FROM peminjaman_buku 
+                    where id_siswa = '".$_SESSION['id_siswa']."' ORDER BY id_peminjaman_buku DESC");
+                    $no=0;
+                    while($data_peminjaman=mysqli_fetch_array($query_peminjaman)){
+                        $no++;
+                    ?>
+                    <tr>
+                        <td><?=$no?></td>
+                        <td><?=$data_peminjaman['tanggal_pinjam']?></td>
+                        <td><?=$data_peminjaman['tanggal_kembali']?></td>
+                        <td>
+                            <ol>
+                            <?php
+                            $query_detail = mysqli_query($koneksi, "SELECT * FROM detail_peminjaman_buku d
+                                            JOIN buku b ON b.id_buku = d.id_buku WHERE
+                                            id_peminjaman_buku = '".$data_peminjaman['id_peminjaman_buku']."'");
+                            while($data_detail = mysqli_fetch_array($query_detail)){
+                                echo "<li>".$data_detail['nama_buku']."</li>";
+                            }
+                            ?>
+                            </ol>
+                        </td>
+                        
+                        <td>
+                            <ol>
+                            <?php
+                            $query_detail = mysqli_query($koneksi, "SELECT * FROM detail_peminjaman_buku d
+                                            JOIN buku b ON b.id_buku = d.id_buku WHERE
+                                            id_peminjaman_buku = '".$data_peminjaman['id_peminjaman_buku']."'");
+                            while($data_detail = mysqli_fetch_array($query_detail)){
+                                echo "<li class='no'>".$data_detail['qty']."</li>";
+                            }
+                            ?>
+                            </ol>
+                        </td>
+                        <?php
+                        //https://www.daniweb.com/programming/web-development/threads/477372/deadline-php-script-with-mysql
+                        $deadline = $data_peminjaman['tanggal_kembali'];
+                        $todays_date = date("Y-m-d");
+                        $today = strtotime($todays_date);
+                        $expiration_date = strtotime($deadline);
+                        $timeDiff = abs($expiration_date-$today);
+                        $num_day = $timeDiff/86400; // 1day = 86400 sec
+                        $num_of_days = intval($num_day);
+
+                        $query_cek_kembali = mysqli_query($koneksi, "SELECT * FROM pengembalian_buku
+                        WHERE id_peminjaman_buku = '".$data_peminjaman['id_peminjaman_buku']."'");
+                        if (mysqli_num_rows($query_cek_kembali) > 0) {
+                            $data_kembali = mysqli_fetch_array($query_cek_kembali);
+                            echo "<td>";
+                            echo "<label class='alert alert-success'>
+                                Sudah Kembali<br>
+                                denda Rp.".$data_kembali['denda']."</label>";
+                            echo "</td>";
+                            echo "<td></td>";
+                        }
+                        else{
+                            if($expiration_date > $today){
+                                echo "<td><label class='alert alert-danger'>Belum Kembali<br>deadline $num_of_days hari lagi</label></td>";
+                            }
+                            else{
+                                echo "<td><label class='alert alert-danger'>Belum Kembali<br>deadline $num_of_days hari lalu</label></td>";
+                            }
+                            echo "<td><a href='kembali.php?id=".$data_peminjaman['id_peminjaman_buku']."' class='btn btn-warning'
+                            onclick='return confirm('Apakah anda yakin mengembalikan buku ini?')'>Kembalikan</a></td>";
+                        }
+                        ?>
+                    </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+    
+<style>
+    li.no{
+  list-style-type: none;
+    }
+</style>
+    <?php
+        include "footer.php";
+    ?>
+
+
+</body>
+</html>
